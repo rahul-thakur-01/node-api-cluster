@@ -4,7 +4,7 @@
 
 This project implements a Node.js API cluster with two replica sets, a rate-limiting mechanism, and a queueing system to manage tasks per user ID. The API ensures that:
 
-- **1 task per second** and **20 tasks per minute** are processed per user ID.
+- **1 task per second** and **5 tasks per minute** are processed per user ID.
 - **No requests are dropped**; instead, they are queued and processed according to rate limits.
 - Task completions are logged to a `task.log` file.
 
