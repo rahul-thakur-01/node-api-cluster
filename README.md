@@ -34,4 +34,4 @@ This project implements a Node.js API cluster with two replica sets, a rate-limi
    pm2 flush
    pm2 start ecosystem.config.json
    ./run_tasks.sh
-   pm2 logs ecosystem.config.json
+   pm2 logs node-api-cluster
