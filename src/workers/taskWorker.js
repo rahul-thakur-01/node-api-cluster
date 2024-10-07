@@ -7,36 +7,36 @@ import { isUnderLimit } from '../utils/rateLimiter.js'; // Import the rate limit
 
 const taskWorker = new Worker('task-queue', async (job) => {
   const { user_id } = job.data;
+
   try {
     const underLimit = await isUnderLimit(user_id);
 
     if (underLimit) {
-      console.log(`Processing job for user ID: ${user_id}`);
+      logger.info(`Processing job for user ID: ${user_id}`);
       try {
         await task(user_id);
-        console.log(`Job for user ID ${user_id} completed.`);
+        logger.info(`Job for user ID ${user_id} completed.`);
       } catch (error) {
-        console.error('Error processing task:', error);
+        logger.error('Error processing task:', { error: error.message, user_id });
         throw new Error('Job failed'); 
       }
     } else {
-      console.log(`User ID ${user_id} has exceeded the rate limit. Requeuing job.`);
+      logger.warn(`User ID ${user_id} has exceeded the rate limit. Requeuing job.`);
       await taskQueue.add('process-task', { user_id }, { delay: 60000 });
     }
   } catch (error) {
-    console.error('Rate Limiter Error:', error);
+    logger.error('Rate Limiter Error:', { error: error.message, user_id });
     throw new Error('Rate Limiter Failure'); 
   }
 }, {
   connection: taskQueue.client,
 });
 
-
 taskWorker.on('failed', async (job, err) => {
-  console.error(`Job ${job.id} failed with error: ${err.message}`);
+  logger.error(`Job ${job.id} failed with error: ${err.message}`);
 
   if (err.message === 'Job failed' || err.message === 'Rate Limiter Failure') {
-    console.log(`Moving job ${job.id} to dead letter queue.`);
+    logger.info(`Moving job ${job.id} to dead letter queue.`);
     await deadLetterQueue.add('dead-letter-task', { user_id: job.data.user_id });
 
     try {
@@ -45,10 +45,10 @@ taskWorker.on('failed', async (job, err) => {
         jobData: job.data,
       });
     } catch (logError) {
-      console.error('Error logging to logger:', logError);
+      logger.error('Error logging to logger:', { error: logError.message });
     }
   } else {
-    console.log(`Job ${job.id} failed with an unexpected error: ${err.message}`);
+    logger.error(`Job ${job.id} failed with an unexpected error: ${err.message}`);
   }
 });
 
